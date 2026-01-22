@@ -1,33 +1,66 @@
-# Simple DeepSeek AI Chat
+# 🤖 Gemini AI Chat
 
-A minimal web interface for DeepSeek AI using their API.
+A simple web interface for Google Gemini AI using their API.
 
-## Setup
+## 🌟 Features
+- Chat with Google's Gemini AI
+- API key stored locally in your browser
+- Clean, responsive interface
+- No backend required
+- Free to use with Google's API credits
 
-1. **Get API Key:**
-   - Go to [DeepSeek Platform](https://platform.deepseek.com/api-keys)
-   - Create an account and get your API key
+## 🚀 Quick Start
 
-2. **Deploy to GitHub:**
-   - Create a new repository
-   - Upload all 4 files
-   - Enable GitHub Pages in Settings > Pages
+### 1. Get Free API Key
+- Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Sign in with Google account
+- Click **"Create API Key"**
+- Select **"Default Gemini Project"**
+- Copy your key (starts with `AIzaSy...`)
 
-3. **Use:**
-   - Open your GitHub Pages URL
-   - Enter your API key (stored locally in browser)
-   - Start chatting!
+### 2. Deploy to GitHub
+1. Fork/Create this repository
+2. Upload all files:
+   - `index.html`
+   - `style.css` 
+   - `script.js`
+   - `README.md`
+3. Go to **Settings → Pages**
+4. Select **"main" branch** and **"/ (root)"** folder
+5. Click **Save**
 
-## Files
-- `index.html` - Main HTML file
-- `style.css` - Styling
-- `script.js` - JavaScript logic
-- `README.md` - This file
+### 3. Start Chatting
+1. Open your GitHub Pages URL
+2. Paste your Gemini API key
+3. Click **"Save Key"**
+4. Start chatting with AI!
 
-## Security Note
-- API key is stored only in your browser's localStorage
-- No backend/server required
-- All calls go directly from browser to DeepSeek API
+## 📁 Files
+- `index.html` - Main HTML interface
+- `style.css` - Styling and design
+- `script.js` - JavaScript logic and API calls
+- `README.md` - This documentation
 
-## Live Demo
-Replace with your GitHub Pages URL
+## 🔒 Security
+- API key stored only in browser's `localStorage`
+- No backend server needed
+- All API calls go directly to Google
+- Your key never leaves your browser
+
+## 💡 Usage Tips
+- First 60 requests/minute are free
+- Works best in modern browsers
+- Bookmark your chat for quick access
+- Clear browser data to remove saved API key
+
+## 🐛 Troubleshooting
+- **Key not working?** Generate a new one at Google AI Studio
+- **Not responding?** Check browser console (F12)
+- **Page not loading?** Ensure GitHub Pages is enabled
+
+## 📞 Support
+For API issues: [Google AI Studio Help](https://ai.google.dev/gemini-api/docs)
+
+---
+
+⭐ **Star this repo if you found it useful!**
