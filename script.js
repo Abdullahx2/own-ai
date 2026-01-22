@@ -1,128 +1,114 @@
-let useLocalAI = true; // Switch between local and online AI
+let apiKey = localStorage.getItem('gemini_api_key') || '';
 
-function sendMessage() {
+// Save API key to localStorage
+function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) {
+        alert('Please enter your Gemini API key');
+        return;
+    }
+    
+    if (!key.startsWith('AIza')) {
+        alert('Invalid Gemini API key. It should start with "AIza"');
+        return;
+    }
+    
+    apiKey = key;
+    localStorage.setItem('gemini_api_key', key);
+    document.getElementById('apiKeyInput').value = '••••••••••••••••';
+    
+    // Show success message
+    addMessage('✅ API key saved successfully! You can now start chatting.', 'ai');
+    console.log('API Key saved:', key.substring(0, 10) + '...');
+}
+
+// Send message to Gemini API
+async function sendMessage() {
     const userInput = document.getElementById('userInput').value.trim();
     if (!userInput) return;
-
-    // Add user message
+    
+    // Check if API key is set
+    if (!apiKey) {
+        alert('Please enter your Gemini API key first!');
+        document.getElementById('apiKeyInput').focus();
+        return;
+    }
+    
+    // Add user message to chat
     addMessage(userInput, 'user');
     document.getElementById('userInput').value = '';
-
-    // Show loading
-    const loadingId = addMessage('Thinking...', 'ai', true);
-
-    if (useLocalAI) {
-        // Use LOCAL AI (instant, always works)
-        setTimeout(() => {
-            removeMessage(loadingId);
-            const response = generateLocalResponse(userInput);
-            addMessage(response, 'ai');
-        }, 500);
-    } else {
-        // Try online AI
-        tryOnlineAI(userInput, loadingId);
-    }
-}
-
-// LOCAL AI - Always works, no internet needed!
-function generateLocalResponse(input) {
-    const responses = [
-        `I understand you said: "${input}". That's interesting!`,
-        `Thanks for asking! "${input}" is a great topic.`,
-        `I'm your AI assistant. You asked: "${input}" - let me think about that.`,
-        `Great question! "${input}" - I'd love to help you with that.`,
-        `I heard you say: "${input}". Can you tell me more?`,
-        `Interesting point about "${input}". What else would you like to know?`,
-        `You mentioned "${input}". That reminds me of something important!`,
-        `Regarding "${input}", I think this is worth discussing further.`,
-        `"${input}" - that's a thoughtful question. Let's explore it!`,
-        `I appreciate you sharing: "${input}". Tell me more!`
-    ];
     
-    // Smart responses for common questions
-    const lowerInput = input.toLowerCase();
+    // Show typing indicator
+    const loadingId = addMessage('<span class="typing"></span>', 'ai', true);
     
-    if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
-        return "Hello there! 👋 How can I help you today?";
-    }
-    if (lowerInput.includes('how are you')) {
-        return "I'm doing great, thanks for asking! How about you?";
-    }
-    if (lowerInput.includes('name')) {
-        return "I'm your friendly AI assistant! What's your name?";
-    }
-    if (lowerInput.includes('weather')) {
-        return "I can't check real weather, but I hope it's nice where you are! ☀️";
-    }
-    if (lowerInput.includes('thank')) {
-        return "You're welcome! 😊 Is there anything else I can help with?";
-    }
-    if (lowerInput.includes('bye') || lowerInput.includes('goodbye')) {
-        return "Goodbye! Have a wonderful day! 👋";
-    }
-    if (lowerInput.includes('joke')) {
-        const jokes = [
-            "Why don't scientists trust atoms? Because they make up everything!",
-            "Why did the scarecrow win an award? He was outstanding in his field!",
-            "What do you call a fake noodle? An impasta!",
-            "Why did the bicycle fall over? Because it was two-tired!",
-            "What do you call cheese that isn't yours? Nacho cheese!"
-        ];
-        return jokes[Math.floor(Math.random() * jokes.length)];
-    }
-    
-    // Return random response
-    return responses[Math.floor(Math.random() * responses.length)];
-}
-
-// ONLINE AI - Try free APIs
-async function tryOnlineAI(input, loadingId) {
-    const freeApis = [
-        {
-            name: 'HuggingFace GPT-2',
-            url: 'https://api-inference.huggingface.co/models/gpt2',
-            body: JSON.stringify({ inputs: input }),
-            transform: (data) => data[0]?.generated_text || "I'm thinking..."
-        },
-        {
-            name: 'Text Generation',
-            url: 'https://text-generator-ai.p.rapidapi.com/text',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-RapidAPI-Key': 'free-tier-key',
-                'X-RapidAPI-Host': 'text-generator-ai.p.rapidapi.com'
-            },
-            body: JSON.stringify({ text: input }),
-            transform: (data) => data.result || "Hello!"
-        }
-    ];
-
-    for (const api of freeApis) {
-        try {
-            console.log(`Trying ${api.name}...`);
-            const response = await fetch(api.url, {
+    try {
+        console.log('Sending to Gemini API...');
+        
+        // Gemini API endpoint
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+            {
                 method: 'POST',
-                headers: api.headers || { 'Content-Type': 'application/json' },
-                body: api.body
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                removeMessage(loadingId);
-                addMessage(api.transform(data), 'ai');
-                return;
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: userInput
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1000
+                    }
+                })
             }
-        } catch (error) {
-            console.log(`${api.name} failed, trying next...`);
+        );
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            
+            // Remove loading
+            removeMessage(loadingId);
+            
+            if (response.status === 400) {
+                addMessage('❌ Invalid API request. Please check your API key.', 'ai');
+            } else if (response.status === 403) {
+                addMessage('❌ API key rejected. Please check if your key is valid.', 'ai');
+            } else if (response.status === 429) {
+                addMessage('⏳ Too many requests. Please wait a moment.', 'ai');
+            } else {
+                addMessage('❌ API Error: ' + response.status, 'ai');
+            }
+            return;
         }
+        
+        const data = await response.json();
+        console.log('Gemini Response:', data);
+        
+        // Remove loading indicator
+        removeMessage(loadingId);
+        
+        // Check if response is valid
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            const aiResponse = data.candidates[0].content.parts[0].text;
+            addMessage(aiResponse, 'ai');
+        } else if (data.error) {
+            addMessage('❌ Error: ' + data.error.message, 'ai');
+        } else {
+            addMessage('🤔 I received an unexpected response format.', 'ai');
+        }
+        
+    } catch (error) {
+        console.error('Network Error:', error);
+        removeMessage(loadingId);
+        addMessage('🌐 Network error. Please check your internet connection.', 'ai');
     }
-    
-    // If all online APIs fail, use local AI
-    removeMessage(loadingId);
-    addMessage(generateLocalResponse(input), 'ai');
 }
 
-// UI Functions (keep these same)
+// Add message to chat
 function addMessage(text, sender, isTemp = false) {
     const chatBox = document.getElementById('chatBox');
     const messageDiv = document.createElement('div');
@@ -130,7 +116,12 @@ function addMessage(text, sender, isTemp = false) {
     
     messageDiv.className = `message ${sender}-message`;
     messageDiv.id = messageId;
-    messageDiv.textContent = text;
+    
+    if (sender === 'ai' && isTemp) {
+        messageDiv.innerHTML = text; // For typing indicator HTML
+    } else {
+        messageDiv.textContent = text;
+    }
     
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -138,6 +129,7 @@ function addMessage(text, sender, isTemp = false) {
     return messageId;
 }
 
+// Remove temporary message
 function removeMessage(id) {
     const element = document.getElementById(id);
     if (element) {
@@ -145,27 +137,13 @@ function removeMessage(id) {
     }
 }
 
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
-        sendMessage();
+// Load saved API key on page load
+window.onload = function() {
+    if (apiKey) {
+        document.getElementById('apiKeyInput').value = '••••••••••••••••';
+        addMessage('✅ Welcome back! Your API key is loaded. You can start chatting!', 'ai');
     }
-}
-
-function toggleAI() {
-    useLocalAI = !useLocalAI;
-    const button = document.getElementById('toggleAI');
-    if (useLocalAI) {
-        button.textContent = "🔒 Local AI (Using)";
-        button.style.background = '#10b981';
-    } else {
-        button.textContent = "🌐 Online AI (Try)";
-        button.style.background = '#3b82f6';
-    }
-}
-
-// Add this to your index.html button section:
-/*
-<button id="toggleAI" onclick="toggleAI()" style="margin-left:10px;background:#10b981;">
-    🔒 Local AI (Using)
-</button>
-*/
+    
+    // Focus on input field
+    document.getElementById('userInput').focus();
+};
