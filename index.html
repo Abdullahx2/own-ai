@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple DeepSeek AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 DeepSeek AI Chat</h1>
+        
+        <div class="api-key-section">
+            <input type="password" id="apiKey" placeholder="Enter your DeepSeek API key">
+            <button onclick="saveApiKey()">Save API Key</button>
+            <small>Your key is stored locally only</small>
+        </div>
+
+        <div class="chat-container">
+            <div id="chatBox"></div>
+            
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Ask me anything..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <p>Get your API key from: <a href="https://platform.deepseek.com/api-keys" target="_blank">DeepSeek Platform</a></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
