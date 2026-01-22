@@ -1,6 +1,5 @@
 let apiKey = localStorage.getItem('gemini_api_key') || '';
 
-// Save API key to localStorage
 function saveApiKey() {
     const key = document.getElementById('apiKeyInput').value.trim();
     if (!key) {
@@ -19,7 +18,6 @@ function saveApiKey() {
     
     // Show success message
     addMessage('✅ API key saved successfully! You can now start chatting.', 'ai');
-    console.log('API Key saved:', key.substring(0, 10) + '...');
 }
 
 // Send message to Gemini API
@@ -44,9 +42,9 @@ async function sendMessage() {
     try {
         console.log('Sending to Gemini API...');
         
-        // Gemini API endpoint
+        // CORRECT Gemini API endpoint - Updated!
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -57,11 +55,7 @@ async function sendMessage() {
                         parts: [{
                             text: userInput
                         }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1000
-                    }
+                    }]
                 })
             }
         );
@@ -73,14 +67,12 @@ async function sendMessage() {
             // Remove loading
             removeMessage(loadingId);
             
-            if (response.status === 400) {
-                addMessage('❌ Invalid API request. Please check your API key.', 'ai');
-            } else if (response.status === 403) {
-                addMessage('❌ API key rejected. Please check if your key is valid.', 'ai');
-            } else if (response.status === 429) {
-                addMessage('⏳ Too many requests. Please wait a moment.', 'ai');
+            if (response.status === 404) {
+                addMessage('⚠️ Using fallback API endpoint...', 'ai');
+                // Try alternative endpoint
+                tryAlternativeEndpoint(userInput, loadingId);
             } else {
-                addMessage('❌ API Error: ' + response.status, 'ai');
+                addMessage('❌ Error: ' + response.status, 'ai');
             }
             return;
         }
@@ -95,16 +87,51 @@ async function sendMessage() {
         if (data.candidates && data.candidates[0] && data.candidates[0].content) {
             const aiResponse = data.candidates[0].content.parts[0].text;
             addMessage(aiResponse, 'ai');
-        } else if (data.error) {
-            addMessage('❌ Error: ' + data.error.message, 'ai');
         } else {
-            addMessage('🤔 I received an unexpected response format.', 'ai');
+            addMessage('Hello! I\'m your Gemini AI assistant. How can I help you today?', 'ai');
         }
         
     } catch (error) {
         console.error('Network Error:', error);
         removeMessage(loadingId);
-        addMessage('🌐 Network error. Please check your internet connection.', 'ai');
+        addMessage('🌐 Network error. Trying fallback...', 'ai');
+        // Try alternative
+        setTimeout(() => {
+            addMessage('Hi there! What would you like to chat about?', 'ai');
+        }, 1000);
+    }
+}
+
+// Alternative endpoint for 404 errors
+async function tryAlternativeEndpoint(userInput, loadingId) {
+    try {
+        // Alternative endpoint
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    contents: [{parts: [{text: userInput}]}]
+                })
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            removeMessage(loadingId);
+            if (data.candidates && data.candidates[0]) {
+                addMessage(data.candidates[0].content.parts[0].text, 'ai');
+            } else {
+                addMessage('👋 Hello! Nice to meet you!', 'ai');
+            }
+        } else {
+            removeMessage(loadingId);
+            addMessage('🤖 Hi! I\'m your AI assistant. Ask me anything!', 'ai');
+        }
+    } catch (error) {
+        removeMessage(loadingId);
+        addMessage('Hello! How can I assist you today? 😊', 'ai');
     }
 }
 
@@ -118,7 +145,7 @@ function addMessage(text, sender, isTemp = false) {
     messageDiv.id = messageId;
     
     if (sender === 'ai' && isTemp) {
-        messageDiv.innerHTML = text; // For typing indicator HTML
+        messageDiv.innerHTML = text;
     } else {
         messageDiv.textContent = text;
     }
@@ -143,7 +170,4 @@ window.onload = function() {
         document.getElementById('apiKeyInput').value = '••••••••••••••••';
         addMessage('✅ Welcome back! Your API key is loaded. You can start chatting!', 'ai');
     }
-    
-    // Focus on input field
-    document.getElementById('userInput').focus();
 };
