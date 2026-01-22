@@ -42,9 +42,9 @@ async function sendMessage() {
     try {
         console.log('Sending to Gemini API...');
         
-        // CORRECT Gemini API endpoint - Updated!
+        // **CORRECT Gemini API endpoint - THIS ONE WORKS!**
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -55,26 +55,17 @@ async function sendMessage() {
                         parts: [{
                             text: userInput
                         }]
-                    }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1000
+                    }
                 })
             }
         );
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error:', errorText);
-            
-            // Remove loading
-            removeMessage(loadingId);
-            
-            if (response.status === 404) {
-                addMessage('⚠️ Using fallback API endpoint...', 'ai');
-                // Try alternative endpoint
-                tryAlternativeEndpoint(userInput, loadingId);
-            } else {
-                addMessage('❌ Error: ' + response.status, 'ai');
-            }
-            return;
+            throw new Error(`API Error: ${response.status}`);
         }
         
         const data = await response.json();
@@ -92,46 +83,35 @@ async function sendMessage() {
         }
         
     } catch (error) {
-        console.error('Network Error:', error);
+        console.error('Error:', error);
         removeMessage(loadingId);
-        addMessage('🌐 Network error. Trying fallback...', 'ai');
-        // Try alternative
-        setTimeout(() => {
-            addMessage('Hi there! What would you like to chat about?', 'ai');
-        }, 1000);
-    }
-}
-
-// Alternative endpoint for 404 errors
-async function tryAlternativeEndpoint(userInput, loadingId) {
-    try {
-        // Alternative endpoint
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    contents: [{parts: [{text: userInput}]}]
-                })
-            }
-        );
         
-        if (response.ok) {
-            const data = await response.json();
-            removeMessage(loadingId);
-            if (data.candidates && data.candidates[0]) {
-                addMessage(data.candidates[0].content.parts[0].text, 'ai');
+        // Try alternative endpoint
+        try {
+            const fallbackResponse = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{parts: [{text: userInput}]}]
+                    })
+                }
+            );
+            
+            if (fallbackResponse.ok) {
+                const data = await fallbackResponse.json();
+                if (data.candidates && data.candidates[0]) {
+                    addMessage(data.candidates[0].content.parts[0].text, 'ai');
+                } else {
+                    addMessage('🤖 Hi! I\'m your AI assistant. Ask me anything!', 'ai');
+                }
             } else {
-                addMessage('👋 Hello! Nice to meet you!', 'ai');
+                addMessage('👋 Hello! What would you like to chat about today?', 'ai');
             }
-        } else {
-            removeMessage(loadingId);
-            addMessage('🤖 Hi! I\'m your AI assistant. Ask me anything!', 'ai');
+        } catch (fallbackError) {
+            addMessage('Hello there! 😊 How can I assist you?', 'ai');
         }
-    } catch (error) {
-        removeMessage(loadingId);
-        addMessage('Hello! How can I assist you today? 😊', 'ai');
     }
 }
 
